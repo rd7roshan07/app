@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOIR — Barbershop</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  --bg: #0b0b0f;
+  --surface: #13131a;
+  --card: #18181f;
+  --border: #25252e;
+  --fg: #eee9df;
+  --muted: #6e6a62;
+  --accent: #c4854c;
+  --accent-light: #daa06d;
+  --accent-glow: rgba(196,133,76,0.15);
+  --danger: #bf4f3e;
+  --success: #3d9a68;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+h1, h2, h3 { font-family: 'Fraunces', serif; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+/* ---- ANIMATED BACKGROUND ORBS ---- */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.35;
+  animation: orbFloat 12s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.orb-1 { width:500px; height:500px; background:#c4854c; top:-10%; left:-10%; animation-delay:0s; }
+.orb-2 { width:400px; height:400px; background:#6e3a1a; bottom:10%; right:-5%; animation-delay:-4s; }
+.orb-3 { width:300px; height:300px; background:#c4854c; top:50%; left:40%; animation-delay:-8s; opacity:0.15; }
+
+@keyframes orbFloat {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+  100% { transform: translate(15px, -15px) scale(1.02); }
+}
+
+/* ---- DOT GRID ---- */
+.dot-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+/* ---- NAVIGATION ---- */
+.nav-glass {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  background: rgba(11,11,15,0.7);
+  border-bottom: 1px solid rgba(37,37,46,0.5);
+}
+
+/* ---- CARDS ---- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.card:hover {
+  border-color: rgba(196,133,76,0.25);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+}
+
+/* ---- SERVICE CARD ---- */
+.svc-card {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.svc-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform 0.35s ease;
+  transform-origin: left;
+}
+.svc-card:hover::after,
+.svc-card.picked::after { transform: scaleX(1); }
+.svc-card.picked {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(196,133,76,0.06), transparent);
+}
+
+/* ---- TIME SLOT ---- */
+.slot {
+  padding: 10px 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.slot:hover:not(.gone):not(.taken):not(.my-pick) {
+  border-color: var(--accent);
+  color: var(--fg);
+  background: var(--card);
+}
+.slot.my-pick {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--accent-light);
+  font-weight: 700;
+}
+.slot.taken, .slot.gone {
+  opacity: 0.3;
+  cursor: not-allowed;
+  text-decoration: line-through;
+  pointer-events: none;
+}
+
+/* ---- DATE CHIP ---- */
+.dchip {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  text-align: center;
+  min-width: 76px;
+  transition: all 0.2s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+.dchip:hover { border-color: rgba(196,133,76,0.4); }
+.dchip.on {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* ---- INPUT ---- */
+.field {
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--fg);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.field::placeholder { color: var(--muted); opacity: 0.5; }
+
+/* ---- BUTTONS ---- */
+.btn-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 36px;
+  background: var(--accent);
+  color: #0b0b0f;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+}
+.btn-main:hover { background: var(--accent-light); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(196,133,76,0.3); }
+.btn-main:active { transform: translateY(0); }
+.btn-main:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+.btn-ghost {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid rgba(191,79,62,0.3);
+  color: var(--danger);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { background: rgba(191,79,62,0.1); border-color: var(--danger); }
+
+/* ---- BOOKING ROW ---- */
+.bk-row {
+  animation: rowIn 0.4s ease-out;
+}
+@keyframes rowIn {
+  from { opacity:0; transform:translateY(16px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* ---- TOAST ---- */
+.toast-wrap {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast-item {
+  pointer-events: auto;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+  min-width: 260px;
+  animation: tIn 0.3s ease-out;
+}
+.toast-item.ok { background:#14231a; border:1px solid rgba(61,154,104,0.35); color:#6ecf97; }
+.toast-item.err { background:#231414; border:1px solid rgba(191,79,62,0.35); color:#e8785f; }
+.toast-item.inf { background:#141a23; border:1px solid rgba(100,140,200,0.3); color:#7ab0e8; }
+
+@keyframes tIn { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
+@keyframes tOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(30px); } }
+
+/* ---- REVEAL ---- */
+.rv { opacity:0; transform:translateY(28px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.rv.show { opacity:1; transform:translateY(0); }
+
+/* ---- SECTION DIVIDER ---- */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 640px) {
+  .hero-big { font-size: 3rem !important; }
+  .svc-grid { grid-template-columns: 1fr !important; }
+  .slot-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .form-row { grid-template-columns: 1fr !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb, .rv, .bk-row, .toast-item { animation: none !important; }
+  .rv { opacity:1; transform:none; }
+  * { transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- NAV -->
+<nav class="nav-glass fixed top-0 inset-x-0 z-50">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2.5 no-underline">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--accent);">
+        <i class="fa-solid fa-scissors text-xs" style="color:var(--bg);"></i>
+      </div>
+      <span style="font-family:'Fraunces',serif; font-weight:700; font-size:18px; color:var(--fg);">NOIR</span>
+    </a>
+    <div class="flex items-center gap-5">
+      <a href="#services" class="text-sm hidden sm:block no-underline" style="color:var(--muted); transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Services</a>
+      <a href="#book" class="text-sm hidden sm:block no-underline" style="color:var(--muted); transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Book</a>
+      <a href="#my" class="text-sm hidden sm:block no-underline" style="color:var(--muted); transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">My Bookings</a>
+      <a href="#book" class="btn-main" style="padding:9px 22px; font-size:13px; border-radius:10px; text-decoration:none;">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="relative min-h-screen flex items-center justify-center overflow-hidden" style="padding-top:64px;">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="dot-grid"></div>
+
+  <div class="relative z-10 text-center px-5 max-w-3xl">
+    <p class="text-xs font-semibold tracking-[5px] uppercase mb-6" style="color:var(--accent);">Modern Grooming Studio</p>
+    <h1 class="hero-big font-black leading-[0.92] mb-6" style="font-size:5.5rem; color:var(--fg);">
+      Where Style<br>Meets <span style="color:var(--accent); font-style:italic;">Precision</span>
+    </h1>
+    <p class="text-lg max-w-md mx-auto mb-10" style="color:var(--muted); font-weight:300;">
+      Book your appointment in seconds. Walk in sharp, walk out sharper.
+    </p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="#book" class="btn-main text-base px-12 py-4" style="text-decoration:none;">
+        <i class="fa-regular fa-calendar"></i> Reserve a Slot
+      </a>
+      <a href="#services" class="px-8 py-4 rounded-xl text-sm font-medium no-underline" style="border:1px solid var(--border); color:var(--muted); transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Explore Services</a>
+    </div>
+    <div class="flex items-center justify-center gap-8 mt-16">
+      <div class="text-center">
+        <div class="text-2xl font-extrabold" style="color:var(--fg);" data-count="5">0</div>
+        <div class="text-[11px] tracking-wider uppercase mt-1" style="color:var(--muted);">Years</div>
+      </div>
+      <div style="width:1px;height:28px;background:var(--border);"></div>
+      <div class="text-center">
+        <div class="text-2xl font-extrabold" style="color:var(--fg);" data-count="12400">0</div>
+        <div class="text-[11px] tracking-wider uppercase mt-1" style="color:var(--muted);">Clients</div>
+      </div>
+      <div style="width:1px;height:28px;background:var(--border);"></div>
+      <div class="text-center">
+        <div class="text-2xl font-extrabold" style="color:var(--fg);" data-count="49">0</div>
+        <div class="text-[11px] tracking-wider uppercase mt-1" style="color:var(--muted);">Rating / 10</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+    <span class="text-[10px] tracking-[3px] uppercase" style="color:var(--muted);">Scroll</span>
+    <div style="width:1px;height:32px;background:linear-gradient(to bottom,var(--accent),transparent);"></div>
+  </div>
+</header>
+
+<!-- SERVICES -->
+<section id="services" class="py-24 px-5">
+  <div class="max-w-6xl mx-auto rv">
+    <p class="text-xs font-semibold tracking-[5px] uppercase text-center mb-3" style="color:var(--accent);">What We Offer</p>
+    <h2 class="text-4xl md:text-5xl font-black text-center mb-4" style="color:var(--fg);">Services</h2>
+    <p class="text-center max-w-sm mx-auto mb-14" style="color:var(--muted); font-weight:300;">Tap a service to jump straight to booking.</p>
+    <div class="svc-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="svcList"></div>
+  </div>
+</section>
+
+<div class="divider max-w-4xl mx-auto"></div>
+
+<!-- BOOKING -->
+<section id="book" class="py-24 px-5">
+  <div class="max-w-5xl mx-auto rv">
+    <p class="text-xs font-semibold tracking-[5px] uppercase text-center mb-3" style="color:var(--accent);">Appointment</p>
+    <h2 class="text-4xl md:text-5xl font-black text-center mb-14" style="color:var(--fg);">Book a Slot</h2>
+
+    <!-- Selected service badge -->
+    <div id="pickedBadge" class="mb-8" style="display:none;">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium" style="background:var(--accent-glow); border:1px solid rgba(196,133,76,0.3); color:var(--accent-light);">
+        <i class="fa-solid fa-check-circle"></i>
+        <span id="pickedName"></span>
+        <button onclick="clearService()" style="background:none;border:none;color:var(--accent-light);cursor:pointer;margin-left:4px;font-size:16px;line-height:1;" aria-label="Remove">&times;</button>
+      </div>
+    </div>
+
+    <!-- Service grid (compact) -->
+    <div id="bookSvcGrid" class="svc-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-10"></div>
+
+    <!-- Date row -->
+    <div id="dateArea" style="display:none;" class="mb-8">
+      <p class="text-sm font-medium mb-3" style="color:var(--muted);"><i class="fa-regular fa-calendar-days mr-1.5"></i>Select Date</p>
+      <div class="flex gap-3 overflow-x-auto pb-2" id="dateRow" style="-webkit-overflow-scrolling:touch;"></div>
+    </div>
+
+    <!-- Time grid -->
+    <div id="timeArea" style="display:none;" class="mb-10">
+      <p class="text-sm font-medium mb-3" style="color:var(--muted);"><i class="fa-regular fa-clock mr-1.5"></i>Available Times</p>
+      <div class="slot-grid grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2.5" id="timeGrid"></div>
+    </div>
+
+    <!-- Form -->
+    <div id="formArea" style="display:none;">
+      <div class="card p-6 md:p-8">
+        <div class="form-row grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color:var(--muted);">Full Name</label>
+            <input type="text" id="fName" class="field" placeholder="e.g. Marcus Reed" autocomplete="name">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color:var(--muted);">Phone Number</label>
+            <input type="tel" id="fPhone" class="field" placeholder="e.g. +1 234 567 8900" autocomplete="tel">
+          </div>
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium mb-2" style="color:var(--muted);">Notes <span style="opacity:0.5;">(optional)</span></label>
+          <textarea id="fNotes" class="field" rows="2" placeholder="Any preferences or special requests..." style="resize:vertical;"></textarea>
+        </div>
+
+        <!-- Summary -->
+        <div class="rounded-xl p-4 mb-6" style="background:var(--surface); border:1px solid var(--border);">
+          <div class="grid grid-cols-3 gap-4 text-sm">
+            <div>
+              <span style="color:var(--muted); font-size:12px;">Service</span>
+              <p class="font-semibold mt-0.5" id="sumSvc" style="color:var(--fg);"></p>
+            </div>
+            <div>
+              <span style="color:var(--muted); font-size:12px;">Date</span>
+              <p class="font-semibold mt-0.5" id="sumDate" style="color:var(--fg);"></p>
+            </div>
+            <div>
+              <span style="color:var(--muted); font-size:12px;">Time</span>
+              <p class="font-semibold mt-0.5" id="sumTime" style="color:var(--fg);"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button class="btn-main px-12" id="bookBtn" onclick="doBook()">
+            <i class="fa-solid fa-check"></i> Confirm Booking
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider max-w-4xl mx-auto"></div>
+
+<!-- MY BOOKINGS -->
+<section id="my" class="py-24 px-5">
+  <div class="max-w-4xl mx-auto rv">
+    <p class="text-xs font-semibold tracking-[5px] uppercase text-center mb-3" style="color:var(--accent);">Schedule</p>
+    <h2 class="text-4xl md:text-5xl font-black text-center mb-4" style="color:var(--fg);">My Bookings</h2>
+    <p class="text-center max-w-sm mx-auto mb-14" style="color:var(--muted); font-weight:300;">Your upcoming appointments.</p>
+    <div id="bkList"></div>
+    <div id="bkEmpty" style="display:none;" class="text-center py-16">
+      <i class="fa-regular fa-calendar-xmark text-4xl mb-4 block" style="color:var(--border);"></i>
+      <p class="text-lg font-semibold" style="color:var(--muted);">Nothing booked yet</p>
+      <p class="text-sm mt-1" style="color:var(--muted); opacity:0.6;">Reserve your first slot above.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer style="border-top:1px solid var(--border);" class="py-10 px-5">
+  <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded-md flex items-center justify-center" style="background:var(--accent);">
+        <i class="fa-solid fa-scissors" style="color:var(--bg); font-size:10px;"></i>
+      </div>
+      <span style="font-family:'Fraunces',serif; font-weight:700; font-size:15px;">NOIR</span>
+    </div>
+    <div class="flex items-center gap-6 text-sm" style="color:var(--muted);">
+      <span><i class="fa-solid fa-location-dot mr-1" style="color:var(--accent);"></i>42 Groom St, Downtown</span>
+      <span class="hidden sm:inline"><i class="fa-solid fa-phone mr-1" style="color:var(--accent);"></i>+1 555 0199</span>
+    </div>
+    <div class="flex gap-3">
+      <a href="#" aria-label="Instagram" class="w-8 h-8 rounded-full flex items-center justify-center no-underline" style="background:var(--card); border:1px solid var(--border); color:var(--muted); transition:all 0.2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'"><i class="fa-brands fa-instagram text-xs"></i></a>
+      <a href="#" aria-label="TikTok" class="w-8 h-8 rounded-full flex items-center justify-center no-underline" style="background:var(--card); border:1px solid var(--border); color:var(--muted); transition:all 0.2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'"><i class="fa-brands fa-tiktok text-xs"></i></a>
+      <a href="#" aria-label="X" class="w-8 h-8 rounded-full flex items-center justify-center no-underline" style="background:var(--card); border:1px solid var(--border); color:var(--muted); transition:all 0.2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'"><i class="fa-brands fa-x-twitter text-xs"></i></a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* =========================================
+   DATA
+   ========================================= */
+var SERVICES = [
+  { id:'classic',  name:'Classic Cut',     dur:'30 min', price:'$25', icon:'fa-solid fa-scissors',            desc:'Clean clipper cut with precision finish' },
+  { id:'beard',    name:'Beard Trim',       dur:'20 min', price:'$15', icon:'fa-solid fa-face-grin-beam',      desc:'Shape, trim and condition your beard' },
+  { id:'combo',    name:'Cut & Beard',      dur:'45 min', price:'$35', icon:'fa-solid fa-crown',                desc:'Full haircut plus detailed beard work' },
+  { id:'shave',    name:'Hot Towel Shave',  dur:'30 min', price:'$30', icon:'fa-solid fa-fire-flame-curved',    desc:'Straight razor shave with hot towels' },
+  { id:'kids',     name:'Kids Cut',         dur:'20 min', price:'$18', icon:'fa-solid fa-child',                desc:'Gentle cuts for ages 3 to 12' },
+  { id:'vip',      name:'VIP Experience',   dur:'60 min', price:'$55', icon:'fa-solid fa-gem',                  desc:'Cut, beard, shave, facial and scalp massage' }
+];
+
+var SLOTS = [];
+(function buildSlots() {
+  for (var h = 9; h <= 19; h++) {
+    for (var m = 0; m < 60; m += 30) {
+      if (h === 19 && m > 0) break;
+      var hr = h > 12 ? h - 12 : h;
+      var ap = h >= 12 ? 'PM' : 'AM';
+      SLOTS.push({ label: hr + ':' + (m === 0 ? '00' : m) + ' ' + ap, h: h, m: m });
+    }
+  }
+})();
+
+/* =========================================
+   STATE
+   ========================================= */
+var pickedSvc = null;   // service object
+var pickedDate = null;  // 'YYYY-MM-DD'
+var pickedTime = null;  // 'H:MM AM/PM'
+var bookings = [];
+
+/* =========================================
+   INIT
+   ========================================= */
+document.addEventListener('DOMContentLoaded', function() {
+  loadBookings();
+  renderSvcPage();
+  renderBookSvcGrid();
+  renderBookings();
+  initReveal();
+  animateCounters();
+});
+
+/* =========================================
+   LOCAL STORAGE
+   ========================================= */
+function loadBookings() {
+  try { bookings = JSON.parse(localStorage.getItem('noir_bk') || '[]'); } catch(e) { bookings = []; }
+  pruneOld();
+}
+function saveBookings() {
+  localStorage.setItem('noir_bk', JSON.stringify(bookings));
+}
+function pruneOld() {
+  var now = new Date();
+  bookings = bookings.filter(function(b) {
+    var d = new Date(b.date + 'T' + to24(b.time));
+    return d > new Date(now.getTime() - 86400000);
+  });
+  saveBookings();
+}
+
+/* =========================================
+   RENDER — SERVICES PAGE
+   ========================================= */
+function renderSvcPage() {
+  var el = document.getElementById('svcList');
+  el.innerHTML = SERVICES.map(function(s) {
+    return '<div class="card svc-card p-6" onclick="pickSvcJump(\'' + s.id + '\')">' +
+      '<div class="flex items-start justify-between mb-4">' +
+        '<div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:var(--accent-glow);"><i class="' + s.icon + '" style="color:var(--accent);"></i></div>' +
+        '<span class="text-xl font-extrabold" style="color:var(--accent);">' + s.price + '</span>' +
+      '</div>' +
+      '<h3 class="text-lg font-bold mb-1" style="color:var(--fg);">' + s.name + '</h3>' +
+      '<p class="text-sm mb-3" style="color:var(--muted); font-weight:300;">' + s.desc + '</p>' +
+      '<span class="text-xs font-medium" style="color:var(--muted);"><i class="fa-regular fa-clock mr-1"></i>' + s.dur + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+/* =========================================
+   RENDER — BOOKING SERVICE GRID
+   ========================================= */
+function renderBookSvcGrid() {
+  var el = document.getElementById('bookSvcGrid');
+  el.innerHTML = SERVICES.map(function(s) {
+    return '<div class="card svc-card p-4" id="bs_' + s.id + '" onclick="pickSvc(\'' + s.id + '\')">' +
+      '<div class="flex items-center gap-3">' +
+        '<div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:var(--accent-glow);"><i class="' + s.icon + '" style="color:var(--accent); font-size:13px;"></i></div>' +
+        '<div class="min-w-0">' +
+          '<p class="text-sm font-semibold truncate" style="color:var(--fg);">' + s.name + '</p>' +
+          '<p class="text-xs" style="color:var(--muted);">' + s.dur + ' · ' + s.price + '</p>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* =========================================
+   PICK SERVICE
+   ========================================= */
+function pickSvc(id) {
+  pickedSvc = SERVICES.find(function(s) { return s.id === id; });
+  pickedDate = null;
+  pickedTime = null;
+
+  // Highlight
+  document.querySelectorAll('#bookSvcGrid .svc-card').forEach(function(c) { c.classList.remove('picked'); });
+  var card = document.getElementById('bs_' + id);
+  if (card) card.classList.add('picked');
+
+  // Badge
+  document.getElementById('pickedBadge').style.display = '';
+  document.getElementById('pickedName').textContent = pickedSvc.name + ' — ' + pickedSvc.price;
+
+  // Show dates
+  buildDates();
+  document.getElementById('dateArea').style.display = '';
+  document.getElementById('timeArea').style.display = 'none';
+  document.getElementById('formArea').style.display = 'none';
+}
+
+function pickSvcJump(id) {
+  pickSvc(id);
+  document.getElementById('book').scrollIntoView({ behavior: 'smooth' });
+}
+
+function clearService() {
+  pickedSvc = null;
+  pickedDate = null;
+  pickedTime = null;
+  document.querySelectorAll('#bookSvcGrid .svc-card').forEach(function(c) { c.classList.remove('picked'); });
+  document.getElementById('pickedBadge').style.display = 'none';
+  document.getElementById('dateArea').style.display = 'none';
+  document.getElementById('timeArea').style.display = 'none';
+  document.getElementById('formArea').style.display = 'none';
+}
+
+/* =========================================
+   DATES
+   ========================================= */
+function buildDates() {
+  var row = document.getElementById('dateRow');
+  var today = new Date();
+  var html = '';
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(today);
+    d.setDate(today.getDate() + i);
+    var ds = d.toISOString().split('T')[0];
+    var isToday = (i === 0);
+    var dayLabel = isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' });
+    var num = d.getDate();
+    var mon = d.toLocaleDateString('en-US', { month: 'short' });
+    html += '<div class="dchip' + (i === 0 ? ' on' : '') + '" data-ds="' + ds + '" onclick="pickDate(\'' + ds + '\',this)">' +
+      '<div class="text-[11px] font-semibold" style="color:var(--muted);">' + dayLabel + '</div>' +
+      '<div class="text-xl font-extrabold mt-0.5" style="color:var(--fg);">' + num + '</div>' +
+      '<div class="text-[11px]" style="color:var(--muted); opacity:0.6;">' + mon + '</div>' +
+    '</div>';
+  }
+  row.innerHTML = html;
+  // Auto-pick today
+  pickDate(today.toISOString().split('T')[0], row.querySelector('.dchip'));
+}
+
+function pickDate(ds, el) {
+  pickedDate = ds;
+  pickedTime = null;
+  document.querySelectorAll('.dchip').forEach(function(c) { c.classList.remove('on'); });
+  if (el) el.classList.add('on');
+  buildTimes();
+  document.getElementById('timeArea').style.display = '';
+  document.getElementById('formArea').style.display = 'none';
+}
+
+/* =========================================
+   TIME SLOTS
+   ========================================= */
+function buildTimes() {
+  var grid = document.getElementById('timeGrid');
+  var now = new Date();
+  var isToday = (pickedDate === now.toISOString().split('T')[0]);
+  var taken = bookings.filter(function(b) { return b.date === pickedDate; }).map(function(b) { return b.time; });
+
+  var html = '';
+  SLOTS.forEach(function(s) {
+    var past = false;
+    if (isToday) {
+      var sd = new Date(); sd.setHours(s.h, s.m, 0, 0);
+      if (sd <= now) past = true;
+    }
+    var isTaken = taken.indexOf(s.label) !== -1;
+    var cls = past ? 'gone' : (isTaken ? 'taken' : '');
+    var click = (!past && !isTaken) ? ' onclick="pickTime(\'' + s.label + '\',this)"' : '';
+    html += '<div class="slot ' + cls + '"' + click + '>' + s.label + '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function pickTime(label, el) {
+  pickedTime = label;
+  document.querySelectorAll('.slot').forEach(function(s) { s.classList.remove('my-pick'); });
+  el.classList.add('my-pick');
+
+  // Show form
+  document.getElementById('formArea').style.display = '';
+  var dd = new Date(pickedDate + 'T00:00:00');
+  document.getElementById('sumSvc').textContent = pickedSvc.name + ' (' + pickedSvc.dur + ')';
+  document.getElementById('sumDate').textContent = dd.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  document.getElementById('sumTime').textContent = label;
+  setTimeout(function() { document.getElementById('fName').focus(); }, 120);
+}
+
+/* =========================================
+   CONFIRM BOOKING
+   ========================================= */
+function doBook() {
+  var name = document.getElementById('fName').value.trim();
+  var phone = document.getElementById('fPhone').value.trim();
+  var notes = document.getElementById('fNotes').value.trim();
+
+  if (!name) { toast('Please enter your name.', 'err'); document.getElementById('fName').focus(); return; }
+  if (!phone) { toast('Please enter your phone number.', 'err'); document.getElementById('fPhone').focus(); return; }
+  var digits = phone.replace(/\D/g, '');
+  if (digits.length < 7) { toast('Phone number needs at least 7 digits.', 'err'); document.getElementById('fPhone').focus(); return; }
+  if (!pickedSvc || !pickedDate || !pickedTime) { toast('Something went wrong. Please try again.', 'err'); return; }
+
+  // Duplicate check
+  var dup = bookings.some(function(b) {
+    return b.date === pickedDate && b.time === pickedTime && b.svcId === pickedSvc.id;
+  });
+  if (dup) { toast('This slot is already taken. Pick another time.', 'err'); return; }
+
+  var bk = {
+    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+    svcId: pickedSvc.id,
+    svcName: pickedSvc.name,
+    svcPrice: pickedSvc.price,
+    svcDur: pickedSvc.dur,
+    date: pickedDate,
+    time: pickedTime,
+    name: name,
+    phone: phone,
+    notes: notes,
+    ts: new Date().toISOString()
+  };
+
+  bookings.push(bk);
+  saveBookings();
+
+  // Reset
+  document.getElementById('fName').value = '';
+  document.getElementById('fPhone').value = '';
+  document.getElementById('fNotes').value = '';
+  clearService();
+  renderBookings();
+
+  toast('Booked! ' + bk.svcName + ' on ' + fmtShort(bk.date) + ' at ' + bk.time + '.', 'ok');
+
+  setTimeout(function() {
+    document.getElementById('my').scrollIntoView({ behavior: 'smooth' });
+  }, 500);
+}
+
+/* =========================================
+   RENDER BOOKINGS
+   ========================================= */
+function renderBookings() {
+  var list = document.getElementById('bkList');
+  var empty = document.getElementById('bkEmpty');
+  var now = new Date();
+
+  var upcoming = bookings.filter(function(b) {
+    return new Date(b.date + 'T' + to24(b.time)) > now;
+  }).sort(function(a, b) {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return a.time < b.time ? -1 : 1;
+  });
+
+  if (upcoming.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = upcoming.map(function(b) {
+    var dd = new Date(b.date + 'T00:00:00');
+    var dw = dd.toLocaleDateString('en-US', { weekday: 'short' });
+    var dn = dd.getDate();
+    var dm = dd.toLocaleDateString('en-US', { month: 'short' });
+
+    return '<div class="card bk-row p-5 mb-3 flex flex-col sm:flex-row sm:items-center gap-4">' +
+      '<div class="flex items-center gap-4 sm:w-40 shrink-0">' +
+        '<div class="text-center px-3 py-2 rounded-xl" style="background:var(--accent-glow); border:1px solid rgba(196,133,76,0.2); min-width:56px;">' +
+          '<div class="text-[10px] font-bold uppercase" style="color:var(--accent);">' + dw + '</div>' +
+          '<div class="text-2xl font-black" style="color:var(--fg);">' + dn + '</div>' +
+          '<div class="text-[10px]" style="color:var(--muted);">' + dm + '</div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="text-sm font-bold" style="color:var(--fg);">' + b.time + '</div>' +
+          '<div class="text-xs" style="color:var(--muted);">' + b.svcDur + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="flex-1 min-w-0">' +
+        '<h4 class="font-bold text-sm" style="color:var(--fg);">' + b.svcName + '</h4>' +
+        '<p class="text-xs mt-1" style="color:var(--muted);"><i class="fa-solid fa-user mr-1"></i>' + b.name + ' <span class="mx-1.5 opacity-30">|</span> <i class="fa-solid fa-phone mr-1"></i>' + b.phone + '</p>' +
+        (b.notes ? '<p class="text-xs mt-1 italic" style="color:var(--muted); opacity:0.6;">"' + b.notes + '"</p>' : '') +
+      '</div>' +
+      '<div class="flex items-center gap-3 sm:flex-col sm:items-end shrink-0">' +
+        '<span class="text-sm font-extrabold" style="color:var(--accent);">' + b.svcPrice + '</span>' +
+        '<button class="btn-ghost" onclick="cancelBk(\'' + b.id + '\')"><i class="fa-solid fa-xmark mr-1"></i>Cancel</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function cancelBk(id) {
+  var bk = bookings.find(function(b) { return b.id === id; });
+  if (!bk) return;
+  bookings = bookings.filter(function(b) { return b.id !== id; });
+  saveBookings();
+  renderBookings();
+  if (pickedDate) buildTimes();
+  toast('Cancelled: ' + bk.svcName + ' on ' + fmtShort(bk.date) + ' at ' + bk.time + '.', 'inf');
+}
+
+/* =========================================
+   TOAST
+   ========================================= */
+function toast(msg, type) {
+  var wrap = document.getElementById('toasts');
+  var icons = { ok: 'fa-solid fa-circle-check', err: 'fa-solid fa-circle-exclamation', inf: 'fa-solid fa-circle-info' };
+  var el = document.createElement('div');
+  el.className = 'toast-item ' + (type || 'inf');
+  el.innerHTML = '<i class="' + (icons[type] || icons.inf) + '"></i><span>' + msg + '</span>';
+  wrap.appendChild(el);
+  setTimeout(function() {
+    el.style.animation = 'tOut 0.3s ease-in forwards';
+    setTimeout(function() { el.remove(); }, 300);
+  }, 4000);
+}
+
+/* =========================================
+   UTILS
+   ========================================= */
+function to24(t) {
+  var parts = t.split(' ');
+  var hm = parts[0].split(':');
+  var h = parseInt(hm[0], 10);
+  var m = parseInt(hm[1], 10);
+  if (parts[1] === 'PM' && h !== 12) h += 12;
+  if (parts[1] === 'AM' && h === 12) h = 0;
+  return ('0' + h).slice(-2) + ':' + ('0' + m).slice(-2) + ':00';
+}
+
+function fmtShort(ds) {
+  var d = new Date(ds + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/* =========================================
+   SCROLL REVEAL
+   ========================================= */
+function initReveal() {
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) e.target.classList.add('show');
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.rv').forEach(function(el) { obs.observe(el); });
+}
+
+/* =========================================
+   COUNTER ANIMATION
+   ========================================= */
+function animateCounters() {
+  var els = document.querySelectorAll('[data-count]');
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        var target = parseInt(e.target.getAttribute('data-count'), 10);
+        var duration = 1800;
+        var start = performance.now();
+        function tick(now) {
+          var elapsed = now - start;
+          var progress = Math.min(elapsed / duration, 1);
+          var eased = 1 - Math.pow(1 - progress, 3);
+          var val = Math.round(eased * target);
+          if (target > 1000) {
+            e.target.textContent = (val / 1000).toFixed(1).replace(/\.0$/, '') + 'K+';
+          } else if (target > 10) {
+            e.target.textContent = (val / 10).toFixed(1);
+          } else {
+            e.target.textContent = val + '+';
+          }
+          if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  els.forEach(function(el) { obs.observe(el); });
+}
+</script>
+</body>
+</html>
